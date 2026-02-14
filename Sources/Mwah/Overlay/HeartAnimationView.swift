@@ -9,7 +9,7 @@ struct HeartBurst {
 @MainActor
 final class HeartAnimationModel: ObservableObject {
     private static let defaultBurstCount = 150
-    private static let maxBurstCount = 1000
+    private static let maxBurstCount = 10_000
 
     @Published private(set) var burst = HeartBurst(token: 0, count: 0)
     private let configuredBurstCount: Int
@@ -49,7 +49,8 @@ struct HeartAnimationView: NSViewRepresentable {
 
 @MainActor
 final class HeartEmitterView: NSView {
-    private static let burstDuration: TimeInterval = 0.18
+    private static let burstDuration: TimeInterval = 0.45
+    private static let spawnOffset: CGFloat = 80
     private static let maxBirthRate: Float = 80_000
 
     private let emitterLayer = CAEmitterLayer()
@@ -77,7 +78,7 @@ final class HeartEmitterView: NSView {
         CATransaction.setDisableActions(true)
         emitterLayer.frame = bounds
         emitterLayer.emitterSize = CGSize(width: bounds.width, height: 2)
-        emitterLayer.emitterPosition = CGPoint(x: bounds.midX, y: bounds.maxY + 24)
+        emitterLayer.emitterPosition = CGPoint(x: bounds.midX, y: bounds.maxY + Self.spawnOffset)
         CATransaction.commit()
     }
 
@@ -121,20 +122,21 @@ final class HeartEmitterView: NSView {
         cell.name = "heart"
         cell.contents = Self.heartImage
         cell.birthRate = 0
-        cell.lifetime = 3.4
-        cell.lifetimeRange = 1.0
-        cell.velocity = 360
-        cell.velocityRange = 160
+        cell.lifetime = 5.2
+        cell.lifetimeRange = 0.8
+        cell.velocity = 330
+        cell.velocityRange = 90
         cell.emissionLongitude = 0
-        cell.emissionRange = .pi / 10
-        cell.yAcceleration = 70
+        cell.emissionRange = .pi / 12
+        // Small downward acceleration so hearts rise then gently slow near the top.
+        cell.yAcceleration = 45
         cell.scale = 0.46
         cell.scaleRange = 0.32
-        cell.scaleSpeed = -0.07
+        cell.scaleSpeed = -0.04
         cell.spin = 0.7
         cell.spinRange = 1.8
         cell.alphaRange = 0.2
-        cell.alphaSpeed = -0.3
+        cell.alphaSpeed = -0.22
         cell.color = NSColor.systemPink.cgColor
         cell.redRange = 0.12
         cell.greenRange = 0.08
