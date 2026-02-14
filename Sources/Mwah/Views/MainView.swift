@@ -6,29 +6,32 @@ struct MainView: View {
     let debugMode: Bool
 
     var body: some View {
-        VStack(spacing: 0) {
-            switch roomManager.state {
-            case .disconnected, .creating, .joining:
-                PairingView(roomManager: roomManager)
-            case .connected:
-                ConnectedView(roomManager: roomManager, onSendHeart: onSendHeart)
+        VStack(spacing: 8) {
+            Group {
+                switch roomManager.state {
+                case .disconnected, .creating, .joining:
+                    PairingView(roomManager: roomManager)
+                        .transition(.opacity)
+                case .connected:
+                    ConnectedView(roomManager: roomManager, onSendHeart: onSendHeart)
+                        .transition(.opacity)
+                }
             }
+            .animation(.easeInOut(duration: 0.2), value: roomManager.state)
 
             if debugMode {
-                Divider()
                 DebugView(roomManager: roomManager, onSendHeart: onSendHeart)
             }
 
-            Divider()
-
-            Button(action: { NSApplication.shared.terminate(nil) }) {
-                Text("Quit Mwah")
-                    .font(.caption)
+            GroupedSection {
+                MenuRow(
+                    icon: "xmark.circle",
+                    iconColor: .secondary,
+                    label: "Quit Mwah",
+                    action: { NSApplication.shared.terminate(nil) }
+                )
             }
-            .buttonStyle(.borderless)
-            .foregroundColor(.secondary)
-            .padding(.vertical, 8)
         }
-        .frame(width: 260)
+        .padding(12)
     }
 }

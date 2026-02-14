@@ -5,56 +5,82 @@ struct PairingView: View {
     @State private var joinCode = ""
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Mwah")
-                .font(.title2)
-                .fontWeight(.semibold)
+        VStack(spacing: 8) {
+            // Header
+            VStack(spacing: 4) {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.pink)
+                    .padding(.top, 4)
 
-            Divider()
-
-            // Create room
-            Button(action: { roomManager.createRoom() }) {
-                Label("Create Room", systemImage: "plus.circle.fill")
-                    .frame(maxWidth: .infinity)
+                Text("Mwah")
+                    .font(.system(size: 16, weight: .semibold))
             }
-            .controlSize(.large)
-            .buttonStyle(.borderedProminent)
-            .tint(.pink)
+            .padding(.bottom, 4)
 
-            HStack {
+            // Create Room
+            GroupedSection {
+                MenuRow(
+                    icon: "plus.circle.fill",
+                    iconColor: .pink,
+                    label: "Create a New Room",
+                    action: { roomManager.createRoom() }
+                )
+            }
+
+            // "or" divider
+            HStack(spacing: 8) {
                 Rectangle()
-                    .fill(Color.secondary.opacity(0.3))
-                    .frame(height: 1)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(height: 0.5)
                 Text("or")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
                 Rectangle()
-                    .fill(Color.secondary.opacity(0.3))
-                    .frame(height: 1)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(height: 0.5)
             }
+            .padding(.horizontal, 4)
 
-            // Join room
-            VStack(spacing: 8) {
-                TextField("Room code", text: $joinCode)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(.body, design: .monospaced))
-                    .multilineTextAlignment(.center)
+            // Join Room
+            GroupedSection {
+                HStack(spacing: 10) {
+                    Image(systemName: "number")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 26, height: 26)
+                        .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-                Button(action: { roomManager.joinRoom(code: joinCode) }) {
-                    Label("Join Room", systemImage: "arrow.right.circle.fill")
-                        .frame(maxWidth: .infinity)
+                    TextField("Enter room code", text: $joinCode)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 13, design: .monospaced))
                 }
-                .controlSize(.large)
-                .buttonStyle(.bordered)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+
+                InsetDivider()
+
+                MenuRow(
+                    icon: "arrow.right.circle.fill",
+                    iconColor: .blue,
+                    label: "Join Room",
+                    action: { roomManager.joinRoom(code: joinCode) }
+                )
+                .opacity(joinCode.trimmingCharacters(in: .whitespaces).isEmpty ? 0.4 : 1.0)
                 .disabled(joinCode.trimmingCharacters(in: .whitespaces).isEmpty)
             }
 
+            // Error message
             if let error = roomManager.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10))
+                    Text(error)
+                        .font(.system(size: 11))
+                }
+                .foregroundStyle(.red)
+                .padding(.horizontal, 4)
             }
         }
-        .padding(20)
     }
 }

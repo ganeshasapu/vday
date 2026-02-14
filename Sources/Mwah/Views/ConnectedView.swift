@@ -4,90 +4,121 @@ struct ConnectedView: View {
     @ObservedObject var roomManager: RoomManager
     let onSendHeart: () -> Void
     @State private var isAnimating = false
+    @State private var copied = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Connected!")
-                .font(.title3)
-                .fontWeight(.semibold)
-                .foregroundColor(.pink)
+        VStack(spacing: 8) {
+            // Status indicator
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(.green)
+                    .frame(width: 8, height: 8)
+                Text("Connected")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.bottom, 2)
 
-            if let code = roomManager.roomCode {
-                VStack(spacing: 4) {
-                    Text("Room Code")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    HStack {
-                        Text(code)
-                            .font(.system(.title2, design: .monospaced))
-                            .fontWeight(.bold)
-                            .textSelection(.enabled)
-
-                        Button(action: {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(code, forType: .string)
-                        }) {
-                            Image(systemName: "doc.on.doc")
-                                .font(.caption)
+            // Hero: Send Heart
+            GroupedSection {
+                VStack(spacing: 10) {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                            isAnimating = true
                         }
-                        .buttonStyle(.borderless)
-                        .help("Copy room code")
-                    }
-                }
-                .padding(12)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(8)
-            }
-
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isAnimating = true
-                }
-                onSendHeart()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    isAnimating = false
-                }
-            }) {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.white)
-                    .scaleEffect(isAnimating ? 1.3 : 1.0)
-                    .frame(width: 80, height: 80)
-                    .background(
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.pink, .red],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                        onSendHeart()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                isAnimating = false
+                            }
+                        }
+                    }) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 32, weight: .medium))
+                            .foregroundStyle(.white)
+                            .scaleEffect(isAnimating ? 1.25 : 1.0)
+                            .frame(width: 64, height: 64)
+                            .background(
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.pink, .red],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .shadow(color: .pink.opacity(0.3), radius: isAnimating ? 12 : 6, y: 2)
                             )
-                    )
+                    }
+                    .buttonStyle(.plain)
+                    .help("Send a heart (Cmd+Shift+H)")
+
+                    Text("Press **Cmd+Shift+H** anytime")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
             }
-            .buttonStyle(.plain)
-            .help("Send a heart (Cmd+Shift+H)")
 
-            Text("Press **Cmd+Shift+H** anytime")
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            // Room Code
+            if let code = roomManager.roomCode {
+                GroupedSection {
+                    Button(action: {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(code, forType: .string)
+                        withAnimation { copied = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            withAnimation { copied = false }
+                        }
+                    }) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "number")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.pink)
+                                .frame(width: 26, height: 26)
+                                .background(Color.pink.opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-            Toggle(isOn: $roomManager.doNotDisturb) {
-                Label("Do Not Disturb", systemImage: "moon.fill")
-                    .font(.caption)
+                            Text("Room Code")
+                                .font(.system(size: 13, weight: .regular))
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Text(code)
+                                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.secondary)
+
+                            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                                .font(.system(size: 11))
+                                .foregroundStyle(copied ? .green : .secondary)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .toggleStyle(.switch)
-            .controlSize(.small)
 
-            Divider()
+            // Settings & Actions
+            GroupedSection {
+                MenuToggleRow(
+                    icon: "moon.fill",
+                    iconColor: .indigo,
+                    label: "Do Not Disturb",
+                    isOn: $roomManager.doNotDisturb
+                )
 
-            Button(action: { roomManager.disconnect() }) {
-                Text("Disconnect")
-                    .font(.caption)
+                InsetDivider()
+
+                MenuRow(
+                    icon: "rectangle.portrait.and.arrow.right",
+                    iconColor: .secondary,
+                    label: "Disconnect",
+                    action: { roomManager.disconnect() }
+                )
             }
-            .buttonStyle(.borderless)
-            .foregroundColor(.secondary)
         }
-        .padding(20)
     }
 }

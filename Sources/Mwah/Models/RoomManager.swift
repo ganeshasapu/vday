@@ -1,6 +1,6 @@
 import Foundation
 
-enum RoomState {
+enum RoomState: Equatable {
     case disconnected
     case creating
     case joining

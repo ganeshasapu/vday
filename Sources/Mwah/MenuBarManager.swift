@@ -34,17 +34,19 @@ class MenuBarManager: NSObject {
     }
 
     private func setupPopover() {
-        let popover = NSPopover()
-        popover.contentSize = NSSize(width: 280, height: debugMode ? 500 : 300)
-        popover.behavior = .transient
-        popover.animates = true
-
         let mainView = MainView(
             roomManager: roomManager,
             onSendHeart: onSendHeart,
             debugMode: debugMode
         )
-        popover.contentViewController = NSHostingController(rootView: mainView)
+        let hostingController = NSHostingController(rootView: mainView)
+        hostingController.sizingOptions = .preferredContentSize
+
+        let popover = NSPopover()
+        popover.contentSize = NSSize(width: 320, height: 10)
+        popover.behavior = .transient
+        popover.animates = true
+        popover.contentViewController = hostingController
         self.popover = popover
     }
 
@@ -53,8 +55,7 @@ class MenuBarManager: NSObject {
         if popover.isShown {
             popover.performClose(nil)
         } else {
-            setupPopover()
-            self.popover?.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
     }
 }
