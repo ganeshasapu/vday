@@ -27,7 +27,11 @@ class OverlayWindow {
         panel.hasShadow = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        let hostingView = NSHostingView(rootView: HeartAnimationView(model: animationModel))
+        let hostingView = NSHostingView(
+            rootView: HeartAnimationView(model: animationModel)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
+        )
         hostingView.frame = screen.frame
         panel.contentView = hostingView
 

@@ -49,8 +49,9 @@ struct HeartAnimationView: NSViewRepresentable {
 
 @MainActor
 final class HeartEmitterView: NSView {
-    private static let burstDuration: TimeInterval = 0.45
-    private static let spawnOffset: CGFloat = 80
+    private static let burstDuration: TimeInterval = 3.0
+    private static let prewarmTime: TimeInterval = 4.0
+    private static let spawnOffset: CGFloat = 20
     private static let maxBirthRate: Float = 80_000
 
     private let emitterLayer = CAEmitterLayer()
@@ -78,7 +79,7 @@ final class HeartEmitterView: NSView {
         CATransaction.setDisableActions(true)
         emitterLayer.frame = bounds
         emitterLayer.emitterSize = CGSize(width: bounds.width, height: 2)
-        emitterLayer.emitterPosition = CGPoint(x: bounds.midX, y: bounds.maxY + Self.spawnOffset)
+        emitterLayer.emitterPosition = CGPoint(x: bounds.midX, y: bounds.maxY * 2 + Self.spawnOffset)
         CATransaction.commit()
     }
 
@@ -88,9 +89,13 @@ final class HeartEmitterView: NSView {
 
         guard count > 0 else { return }
 
-        let emissionRate = min(Float(count) / Float(Self.burstDuration), Self.maxBirthRate)
+        // Total emission spans prewarm (retroactive) + visible burst duration.
+        // Prewarm generates particles already in-flight so hearts appear immediately.
+        let totalEmissionTime = Self.prewarmTime + Self.burstDuration
+        let emissionRate = min(Float(count) / Float(totalEmissionTime), Self.maxBirthRate)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        emitterLayer.beginTime = CACurrentMediaTime() - Self.prewarmTime
         emitterLayer.setValue(emissionRate, forKeyPath: "emitterCells.heart.birthRate")
         CATransaction.commit()
 
@@ -122,21 +127,20 @@ final class HeartEmitterView: NSView {
         cell.name = "heart"
         cell.contents = Self.heartImage
         cell.birthRate = 0
-        cell.lifetime = 5.2
-        cell.lifetimeRange = 0.8
-        cell.velocity = 330
-        cell.velocityRange = 90
+        cell.lifetime = 15.0
+        cell.lifetimeRange = 2.0
+        cell.velocity = 250
+        cell.velocityRange = 70
         cell.emissionLongitude = 0
         cell.emissionRange = .pi / 12
-        // Small downward acceleration so hearts rise then gently slow near the top.
-        cell.yAcceleration = 45
+        cell.yAcceleration = 6
         cell.scale = 0.46
         cell.scaleRange = 0.32
         cell.scaleSpeed = -0.04
         cell.spin = 0.7
         cell.spinRange = 1.8
         cell.alphaRange = 0.2
-        cell.alphaSpeed = -0.22
+        cell.alphaSpeed = -0.06
         cell.color = NSColor.systemPink.cgColor
         cell.redRange = 0.12
         cell.greenRange = 0.08
