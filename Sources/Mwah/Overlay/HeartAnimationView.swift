@@ -57,6 +57,7 @@ final class HeartEmitterView: NSView {
     private let emitterLayer = CAEmitterLayer()
     private var latestToken: UInt64 = 0
     private var stopEmissionWorkItem: DispatchWorkItem?
+    private var isEmitting = false
 
     override var isFlipped: Bool { true }
 
@@ -89,15 +90,18 @@ final class HeartEmitterView: NSView {
 
         guard count > 0 else { return }
 
-        // Total emission spans prewarm (retroactive) + visible burst duration.
-        // Prewarm generates particles already in-flight so hearts appear immediately.
-        let totalEmissionTime = Self.prewarmTime + Self.burstDuration
-        let emissionRate = min(Float(count) / Float(totalEmissionTime), Self.maxBirthRate)
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        emitterLayer.beginTime = CACurrentMediaTime() - Self.prewarmTime
-        emitterLayer.setValue(emissionRate, forKeyPath: "emitterCells.heart.birthRate")
-        CATransaction.commit()
+        if !isEmitting {
+            // First burst in this session: prewarm so hearts appear immediately
+            let totalEmissionTime = Self.prewarmTime + Self.burstDuration
+            let emissionRate = min(Float(count) / Float(totalEmissionTime), Self.maxBirthRate)
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            emitterLayer.beginTime = CACurrentMediaTime() - Self.prewarmTime
+            emitterLayer.setValue(emissionRate, forKeyPath: "emitterCells.heart.birthRate")
+            CATransaction.commit()
+            isEmitting = true
+        }
+        // If already emitting, just extend the stop timer (no beginTime rewind)
 
         stopEmissionWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
@@ -106,6 +110,7 @@ final class HeartEmitterView: NSView {
             CATransaction.setDisableActions(true)
             self.emitterLayer.setValue(0.0, forKeyPath: "emitterCells.heart.birthRate")
             CATransaction.commit()
+            self.isEmitting = false
         }
         stopEmissionWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.burstDuration, execute: workItem)
