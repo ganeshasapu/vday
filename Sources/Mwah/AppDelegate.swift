@@ -14,6 +14,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         debugMode = CommandLine.arguments.contains("--debug")
 
+        setupMainMenu()
+
         let shortcut = GlobalShortcut(
             onSendHeart: { [weak self] in self?.sendHeart() },
             onToggleDebug: { [weak self] in self?.toggleDebug() }
@@ -116,5 +118,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func toggleDebug() {
         debugMode.toggle()
         menuBarManager?.setDebugMode(debugMode)
+    }
+
+    private func setupMainMenu() {
+        let mainMenu = NSMenu()
+
+        let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+
+        let editMenuItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+
+        NSApplication.shared.mainMenu = mainMenu
     }
 }
