@@ -9,6 +9,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusStore = StatusStore()
     private var overlayWindow: OverlayWindow?
     private var globalShortcut: GlobalShortcut?
+    private var heartQueue: HeartQueue?
+    private var lastHeartSendTime: CFTimeInterval = 0
     private var debugMode = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -41,13 +43,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.overlayWindow?.showHearts()
+                if let queue = self?.heartQueue {
+                    queue.enqueue()
+                } else {
+                    self?.overlayWindow?.showHearts()
+                }
             }
         }
     }
 
     private func sendHeart() {
         guard roomManager.state == .connected else { return }
+        let now = CACurrentMediaTime()
+        guard now - lastHeartSendTime >= 0.1 else { return }
+        lastHeartSendTime = now
         heartChannel?.sendHeart()
         roomManager.log("Heart sent")
     }
@@ -65,6 +74,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startListening() {
         guard let code = roomManager.roomCode else { return }
+
+        heartQueue = HeartQueue { [weak self] in
+            self?.overlayWindow?.showHearts()
+        }
+
         heartChannel = HeartChannel(
             roomCode: code,
             senderID: roomManager.senderID
@@ -74,7 +88,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self else { return }
                 self.roomManager.log("Heart received")
                 if !self.roomManager.doNotDisturb {
-                    self.overlayWindow?.showHearts()
+                    self.heartQueue?.enqueue()
                 }
             }
         }
@@ -112,6 +126,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func stopListening() {
         heartChannel?.disconnect()
         heartChannel = nil
+        heartQueue?.cancelAll()
+        heartQueue = nil
         roomManager.onDoNotDisturbChanged = nil
     }
 

@@ -9,6 +9,8 @@ final class HeartChannel: NSObject, @unchecked Sendable {
     private var isConnected = false
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 10
+    private var recentMessageIDs: [String] = []
+    private let maxRecentIDs = 20
 
     var onHeartReceived: (() -> Void)?
     var onPartnerStatusReceived: ((Bool) -> Void)?
@@ -171,6 +173,16 @@ final class HeartChannel: NSObject, @unchecked Sendable {
                 onPartnerStatusReceived?(dnd)
             }
         case "heart":
+            if let id = body["id"] as? String {
+                if recentMessageIDs.contains(id) {
+                    onLog?("Skipped duplicate heart \(id.prefix(8))...")
+                    return
+                }
+                recentMessageIDs.append(id)
+                if recentMessageIDs.count > maxRecentIDs {
+                    recentMessageIDs.removeFirst()
+                }
+            }
             onLog?("Heart received from \(sender.prefix(8))...")
             onHeartReceived?()
         default:
