@@ -81,6 +81,26 @@ struct ConnectedView: View {
                 .padding(.vertical, 14)
             }
 
+            // Partner DND indicator
+            if roomManager.partnerDoNotDisturb {
+                GroupedSection {
+                    HStack(spacing: 10) {
+                        Image(systemName: "moon.fill")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.indigo)
+                            .frame(width: 26, height: 26)
+                            .background(Color.indigo.opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                        Text("Your partner has Do Not Disturb on")
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
             // Room Code
             if let code = roomManager.roomCode {
                 GroupedSection {

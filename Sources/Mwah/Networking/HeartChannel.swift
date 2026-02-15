@@ -11,6 +11,7 @@ final class HeartChannel: NSObject, @unchecked Sendable {
     private let maxReconnectAttempts = 10
 
     var onHeartReceived: (() -> Void)?
+    var onPartnerStatusReceived: ((Bool) -> Void)?
     var onLog: ((String) -> Void)?
 
     init(roomCode: String, senderID: String) {
@@ -49,6 +50,30 @@ final class HeartChannel: NSObject, @unchecked Sendable {
             }
             if let http = response as? HTTPURLResponse, http.statusCode == 200 {
                 self?.onLog?("Heart sent via network")
+            }
+        }.resume()
+    }
+
+    func sendStatus(dnd: Bool) {
+        let urlString = "https://ntfy.sh/\(topicName)"
+        guard let url = URL(string: urlString) else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "sender": senderID,
+            "type": "status",
+            "dnd": dnd
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+        request.httpBody = data
+
+        URLSession.shared.dataTask(with: request) { [weak self] _, _, error in
+            if let error = error {
+                self?.onLog?("Status send error: \(error.localizedDescription)")
             }
         }.resume()
     }
@@ -137,8 +162,20 @@ final class HeartChannel: NSObject, @unchecked Sendable {
             return
         }
 
-        onLog?("Heart received from \(sender.prefix(8))...")
-        onHeartReceived?()
+        let type = body["type"] as? String ?? "heart"
+
+        switch type {
+        case "status":
+            if let dnd = body["dnd"] as? Bool {
+                onLog?("Partner DND: \(dnd ? "on" : "off")")
+                onPartnerStatusReceived?(dnd)
+            }
+        case "heart":
+            onLog?("Heart received from \(sender.prefix(8))...")
+            onHeartReceived?()
+        default:
+            onLog?("Unknown message type: \(type)")
+        }
     }
 
     private func attemptReconnect() {

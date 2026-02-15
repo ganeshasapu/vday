@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarManager: MenuBarManager?
     private let roomManager = RoomManager()
     private var heartChannel: HeartChannel?
+    private let statusStore = StatusStore()
     private var overlayWindow: OverlayWindow?
     private var globalShortcut: GlobalShortcut?
     private var debugMode = false
@@ -75,17 +76,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+        heartChannel?.onPartnerStatusReceived = { [weak self] dnd in
+            DispatchQueue.main.async {
+                self?.roomManager.partnerDoNotDisturb = dnd
+            }
+        }
         heartChannel?.onLog = { [weak self] message in
             DispatchQueue.main.async {
                 self?.roomManager.log(message)
             }
         }
         heartChannel?.connect()
+
+        // Persist & broadcast current DND status on connect
+        statusStore.saveDND(dnd: roomManager.doNotDisturb, roomCode: code, senderID: roomManager.senderID)
+        heartChannel?.sendStatus(dnd: roomManager.doNotDisturb)
+
+        // Fetch partner's DND status from Firebase
+        statusStore.fetchPartnerDND(roomCode: code, senderID: roomManager.senderID) { [weak self] dnd in
+            DispatchQueue.main.async {
+                self?.roomManager.partnerDoNotDisturb = dnd
+            }
+        }
+
+        // Broadcast DND changes while connected
+        roomManager.onDoNotDisturbChanged = { [weak self] dnd in
+            guard let self, let code = self.roomManager.roomCode else { return }
+            self.statusStore.saveDND(dnd: dnd, roomCode: code, senderID: self.roomManager.senderID)
+            self.heartChannel?.sendStatus(dnd: dnd)
+        }
     }
 
     private func stopListening() {
         heartChannel?.disconnect()
         heartChannel = nil
+        roomManager.onDoNotDisturbChanged = nil
     }
 
     private func toggleDebug() {

@@ -14,16 +14,25 @@ class RoomManager: ObservableObject {
     @Published var errorMessage: String?
     @Published var eventLog: [String] = []
     @Published var doNotDisturb: Bool {
-        didSet { UserDefaults.standard.set(doNotDisturb, forKey: "doNotDisturb") }
+        didSet {
+            UserDefaults.standard.set(doNotDisturb, forKey: "doNotDisturb")
+            onDoNotDisturbChanged?(doNotDisturb)
+        }
     }
+    @Published var partnerDoNotDisturb: Bool = false
 
     let senderID: String
     var onStateChange: (() -> Void)?
+    var onDoNotDisturbChanged: ((Bool) -> Void)?
 
     private static let allowedChars = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
 
     init() {
-        if let saved = UserDefaults.standard.string(forKey: "senderID") {
+        if CommandLine.arguments.contains("--debug") {
+            // In debug mode, generate a fresh ID per launch so multiple
+            // instances on the same machine have distinct identities.
+            senderID = UUID().uuidString
+        } else if let saved = UserDefaults.standard.string(forKey: "senderID") {
             senderID = saved
         } else {
             let id = UUID().uuidString
@@ -58,6 +67,7 @@ class RoomManager: ObservableObject {
     func disconnect() {
         let code = roomCode ?? "unknown"
         roomCode = nil
+        partnerDoNotDisturb = false
         state = .disconnected
         log("Disconnected from room: \(code)")
         onStateChange?()
