@@ -3,23 +3,41 @@ import SwiftUI
 struct MainView: View {
     @ObservedObject var roomManager: RoomManager
     let onSendHeart: () -> Void
+    @ObservedObject var shortcutManager: GlobalShortcut
     let debugMode: Bool
+
+    @State private var showSettings = false
 
     var body: some View {
         VStack(spacing: 8) {
             Group {
-                switch roomManager.state {
-                case .disconnected, .creating, .joining:
-                    PairingView(roomManager: roomManager)
-                        .transition(.opacity)
-                case .connected:
-                    ConnectedView(roomManager: roomManager, onSendHeart: onSendHeart)
-                        .transition(.opacity)
+                if showSettings {
+                    SettingsView(
+                        shortcutManager: shortcutManager,
+                        onBack: { showSettings = false }
+                    )
+                    .transition(.opacity)
+                } else {
+                    Group {
+                        switch roomManager.state {
+                        case .disconnected, .creating, .joining:
+                            PairingView(roomManager: roomManager)
+                        case .connected:
+                            ConnectedView(
+                                roomManager: roomManager,
+                                onSendHeart: onSendHeart,
+                                shortcutManager: shortcutManager,
+                                onShowSettings: { showSettings = true }
+                            )
+                        }
+                    }
+                    .transition(.opacity)
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: showSettings)
             .animation(.easeInOut(duration: 0.2), value: roomManager.state)
 
-            if debugMode {
+            if debugMode && !showSettings {
                 DebugView(roomManager: roomManager, onSendHeart: onSendHeart)
             }
 

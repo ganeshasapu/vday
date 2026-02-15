@@ -3,8 +3,14 @@ import SwiftUI
 struct ConnectedView: View {
     @ObservedObject var roomManager: RoomManager
     let onSendHeart: () -> Void
+    @ObservedObject var shortcutManager: GlobalShortcut
+    let onShowSettings: () -> Void
     @State private var isAnimating = false
     @State private var copied = false
+    @State private var showSent = false
+    @State private var isHoveredCode = false
+
+    @State private var dotPulse = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -13,6 +19,9 @@ struct ConnectedView: View {
                 Circle()
                     .fill(.green)
                     .frame(width: 8, height: 8)
+                    .opacity(dotPulse ? 1.0 : 0.5)
+                    .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: dotPulse)
+                    .onAppear { dotPulse = true }
                 Text("Connected")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -27,10 +36,14 @@ struct ConnectedView: View {
                             isAnimating = true
                         }
                         onSendHeart()
+                        withAnimation(.easeOut(duration: 0.2)) { showSent = true }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 isAnimating = false
                             }
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                            withAnimation(.easeIn(duration: 0.3)) { showSent = false }
                         }
                     }) {
                         Image(systemName: "heart.fill")
@@ -51,11 +64,18 @@ struct ConnectedView: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .help("Send a heart (Cmd+Shift+H)")
+                    .help("Send a heart (\(shortcutManager.sendHeartDisplayString))")
 
-                    Text("Press **Cmd+Shift+H** anytime")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                    if showSent {
+                        Text("Sent!")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.pink)
+                            .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    } else {
+                        Text("Press **\(shortcutManager.sendHeartDisplayString)** anytime")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -98,6 +118,11 @@ struct ConnectedView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(isHoveredCode ? Color.primary.opacity(0.06) : Color.clear)
+                    )
+                    .onHover { hovering in isHoveredCode = hovering }
                 }
             }
 
@@ -108,6 +133,16 @@ struct ConnectedView: View {
                     iconColor: .indigo,
                     label: "Do Not Disturb",
                     isOn: $roomManager.doNotDisturb
+                )
+
+                InsetDivider()
+
+                MenuRow(
+                    icon: "keyboard",
+                    iconColor: .gray,
+                    label: "Shortcuts",
+                    trailingText: shortcutManager.sendHeartDisplayString,
+                    action: onShowSettings
                 )
 
                 InsetDivider()

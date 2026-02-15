@@ -13,18 +13,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         debugMode = CommandLine.arguments.contains("--debug")
 
+        let shortcut = GlobalShortcut(
+            onSendHeart: { [weak self] in self?.sendHeart() },
+            onToggleDebug: { [weak self] in self?.toggleDebug() }
+        )
+        globalShortcut = shortcut
+
         menuBarManager = MenuBarManager(
             roomManager: roomManager,
             onSendHeart: { [weak self] in self?.sendHeart() },
+            shortcutManager: shortcut,
             debugMode: debugMode
         )
 
         overlayWindow = OverlayWindow()
-
-        globalShortcut = GlobalShortcut(
-            onSendHeart: { [weak self] in self?.sendHeart() },
-            onToggleDebug: { [weak self] in self?.toggleDebug() }
-        )
 
         roomManager.onStateChange = { [weak self] in
             self?.handleRoomStateChange()

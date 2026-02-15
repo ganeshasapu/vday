@@ -54,6 +54,14 @@ struct PairingView: View {
                     TextField("Enter room code", text: $joinCode)
                         .textFieldStyle(.plain)
                         .font(.system(size: 13, design: .monospaced))
+                        .onChange(of: joinCode) { newValue in
+                            let uppercased = newValue.uppercased()
+                            if uppercased != newValue { joinCode = uppercased }
+                        }
+                        .onSubmit {
+                            guard !joinCode.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                            roomManager.joinRoom(code: joinCode)
+                        }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)

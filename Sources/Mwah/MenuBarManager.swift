@@ -7,11 +7,13 @@ class MenuBarManager: NSObject {
     private var popover: NSPopover?
     private let roomManager: RoomManager
     private let onSendHeart: () -> Void
+    private let shortcutManager: GlobalShortcut
     private var debugMode: Bool
 
-    init(roomManager: RoomManager, onSendHeart: @escaping () -> Void, debugMode: Bool) {
+    init(roomManager: RoomManager, onSendHeart: @escaping () -> Void, shortcutManager: GlobalShortcut, debugMode: Bool) {
         self.roomManager = roomManager
         self.onSendHeart = onSendHeart
+        self.shortcutManager = shortcutManager
         self.debugMode = debugMode
         super.init()
         setupStatusItem()
@@ -37,6 +39,7 @@ class MenuBarManager: NSObject {
         let mainView = MainView(
             roomManager: roomManager,
             onSendHeart: onSendHeart,
+            shortcutManager: shortcutManager,
             debugMode: debugMode
         )
         let hostingController = NSHostingController(rootView: mainView)
