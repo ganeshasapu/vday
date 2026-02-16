@@ -69,7 +69,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let now = CACurrentMediaTime()
         guard now - lastHeartSendTime >= 0.1 else { return }
         lastHeartSendTime = now
-        heartChannel?.sendHeart()
+        guard let heartChannel else {
+            roomManager.log("Heart skipped: no channel")
+            return
+        }
+        heartChannel.sendHeart()
         roomManager.log("Heart sent")
     }
 
