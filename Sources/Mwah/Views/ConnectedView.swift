@@ -55,12 +55,12 @@ struct ConnectedView: View {
                                 Circle()
                                     .fill(
                                         LinearGradient(
-                                            colors: [.pink, .red],
+                                            colors: [.purple, .indigo],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
                                     )
-                                    .shadow(color: .pink.opacity(0.3), radius: isAnimating ? 12 : 6, y: 2)
+                                    .shadow(color: .purple.opacity(0.3), radius: isAnimating ? 12 : 6, y: 2)
                             )
                     }
                     .buttonStyle(.plain)
@@ -69,7 +69,7 @@ struct ConnectedView: View {
                     if showSent {
                         Text("Sent!")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.pink)
+                            .foregroundStyle(.purple)
                             .transition(.opacity.combined(with: .scale(scale: 0.8)))
                     } else {
                         Text("Press **\(shortcutManager.sendHeartDisplayString)** anytime")
@@ -115,9 +115,9 @@ struct ConnectedView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "number")
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.pink)
+                                .foregroundStyle(.purple)
                                 .frame(width: 26, height: 26)
-                                .background(Color.pink.opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                .background(Color.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
 
                             Text("Room Code")
                                 .font(.system(size: 13, weight: .regular))
