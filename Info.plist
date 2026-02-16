@@ -27,5 +27,9 @@
         <key>NSAllowsArbitraryLoads</key>
         <true/>
     </dict>
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/ganeshasapu/vday/master/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>Tfoc+GK9MJZGf6DxvG4nAMpr48mYaNfx/PCVV8Us4rE=</string>
 </dict>
 </plist>

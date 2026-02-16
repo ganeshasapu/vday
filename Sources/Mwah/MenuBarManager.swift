@@ -6,12 +6,14 @@ class MenuBarManager: NSObject {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private let roomManager: RoomManager
+    private let updaterManager: UpdaterManager
     private let onSendHeart: () -> Void
     private let shortcutManager: GlobalShortcut
     private var debugMode: Bool
 
-    init(roomManager: RoomManager, onSendHeart: @escaping () -> Void, shortcutManager: GlobalShortcut, debugMode: Bool) {
+    init(roomManager: RoomManager, updaterManager: UpdaterManager, onSendHeart: @escaping () -> Void, shortcutManager: GlobalShortcut, debugMode: Bool) {
         self.roomManager = roomManager
+        self.updaterManager = updaterManager
         self.onSendHeart = onSendHeart
         self.shortcutManager = shortcutManager
         self.debugMode = debugMode
@@ -38,6 +40,7 @@ class MenuBarManager: NSObject {
     private func setupPopover() {
         let mainView = MainView(
             roomManager: roomManager,
+            updaterManager: updaterManager,
             onSendHeart: onSendHeart,
             shortcutManager: shortcutManager,
             debugMode: debugMode
