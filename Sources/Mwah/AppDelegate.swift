@@ -12,6 +12,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var globalShortcut: GlobalShortcut?
     private var heartQueue: HeartQueue?
     private var lastHeartSendTime: CFTimeInterval = 0
+    private var presenceTimer: Timer?
+    private var partnerTimeoutTimer: Timer?
+    private var wakeObserver: NSObjectProtocol?
+    private static let presenceInterval: TimeInterval = 30
+    private static let presenceTimeout: TimeInterval = 90
     private var debugMode = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -94,6 +99,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.roomManager.log("Heart received")
+                self.roomManager.partnerOnline = true
+                self.resetPartnerTimeout()
                 if !self.roomManager.doNotDisturb {
                     self.heartQueue?.enqueue()
                 }
@@ -102,6 +109,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         heartChannel?.onPartnerStatusReceived = { [weak self] dnd in
             DispatchQueue.main.async {
                 self?.roomManager.partnerDoNotDisturb = dnd
+            }
+        }
+        heartChannel?.onPresenceReceived = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.roomManager.partnerOnline = true
+                self.resetPartnerTimeout()
             }
         }
         heartChannel?.onLog = { [weak self] message in
@@ -122,6 +136,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // Presence: send initial ping + persist to Firebase
+        heartChannel?.sendPresence()
+        statusStore.savePresence(roomCode: code, senderID: roomManager.senderID)
+
+        // Start periodic presence pings
+        presenceTimer = Timer.scheduledTimer(withTimeInterval: Self.presenceInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.heartChannel?.sendPresence()
+                self.statusStore.savePresence(roomCode: code, senderID: self.roomManager.senderID)
+            }
+        }
+
+        // Fetch partner presence from Firebase for initial state
+        statusStore.fetchPartnerPresence(roomCode: code, senderID: roomManager.senderID) { [weak self] online in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.roomManager.partnerOnline = online
+                if online {
+                    self.resetPartnerTimeout()
+                }
+            }
+        }
+
+        // Start partner timeout
+        resetPartnerTimeout()
+
+        // Send presence ping immediately on wake from sleep
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.heartChannel?.sendPresence()
+                self.statusStore.savePresence(roomCode: code, senderID: self.roomManager.senderID)
+            }
+        }
+
         // Broadcast DND changes while connected
         roomManager.onDoNotDisturbChanged = { [weak self] dnd in
             guard let self, let code = self.roomManager.roomCode else { return }
@@ -135,7 +189,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         heartChannel = nil
         heartQueue?.cancelAll()
         heartQueue = nil
+        presenceTimer?.invalidate()
+        presenceTimer = nil
+        partnerTimeoutTimer?.invalidate()
+        partnerTimeoutTimer = nil
+        if let wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver)
+        }
+        wakeObserver = nil
         roomManager.onDoNotDisturbChanged = nil
+    }
+
+    private func resetPartnerTimeout() {
+        partnerTimeoutTimer?.invalidate()
+        partnerTimeoutTimer = Timer.scheduledTimer(withTimeInterval: Self.presenceTimeout, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.roomManager.partnerOnline = false
+            }
+        }
     }
 
     private func toggleDebug() {

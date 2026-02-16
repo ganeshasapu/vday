@@ -17,12 +17,12 @@ struct ConnectedView: View {
             // Status indicator
             HStack(spacing: 6) {
                 Circle()
-                    .fill(.green)
+                    .fill(roomManager.partnerOnline ? .green : .gray)
                     .frame(width: 8, height: 8)
                     .opacity(dotPulse ? 1.0 : 0.5)
                     .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: dotPulse)
                     .onAppear { dotPulse = true }
-                Text("Connected")
+                Text(roomManager.partnerOnline ? "Partner Online" : "Partner Offline")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
             }

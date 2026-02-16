@@ -20,6 +20,7 @@ class RoomManager: ObservableObject {
         }
     }
     @Published var partnerDoNotDisturb: Bool = false
+    @Published var partnerOnline: Bool = false
 
     let senderID: String
     var onStateChange: (() -> Void)?
@@ -77,6 +78,7 @@ class RoomManager: ObservableObject {
         roomCode = nil
         UserDefaults.standard.removeObject(forKey: "roomCode")
         partnerDoNotDisturb = false
+        partnerOnline = false
         state = .disconnected
         log("Disconnected from room: \(code)")
         onStateChange?()
