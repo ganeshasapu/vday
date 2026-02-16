@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var roomManager: RoomManager
+    @ObservedObject var updaterManager: UpdaterManager
     let onSendHeart: () -> Void
     @ObservedObject var shortcutManager: GlobalShortcut
     let debugMode: Bool
@@ -42,6 +43,16 @@ struct MainView: View {
             }
 
             GroupedSection {
+                MenuRow(
+                    icon: "arrow.triangle.2.circlepath",
+                    iconColor: .blue,
+                    label: "Check for Updates...",
+                    action: { updaterManager.checkForUpdates() }
+                )
+                .disabled(!updaterManager.canCheckForUpdates)
+
+                InsetDivider()
+
                 MenuRow(
                     icon: "xmark.circle",
                     iconColor: .secondary,

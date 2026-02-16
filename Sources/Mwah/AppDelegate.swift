@@ -5,6 +5,7 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarManager: MenuBarManager?
     private let roomManager = RoomManager()
+    private let updaterManager = UpdaterManager()
     private var heartChannel: HeartChannel?
     private let statusStore = StatusStore()
     private var overlayWindow: OverlayWindow?
@@ -26,6 +27,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menuBarManager = MenuBarManager(
             roomManager: roomManager,
+            updaterManager: updaterManager,
             onSendHeart: { [weak self] in self?.sendHeart() },
             shortcutManager: shortcut,
             debugMode: debugMode
