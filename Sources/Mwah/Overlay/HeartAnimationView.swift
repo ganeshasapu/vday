@@ -49,15 +49,25 @@ struct HeartAnimationView: NSViewRepresentable {
 
 @MainActor
 final class HeartEmitterView: NSView {
+    private static let slotCount = 5
     private static let burstDuration: TimeInterval = 3.0
     private static let prewarmTime: TimeInterval = 4.0
     private static let spawnOffset: CGFloat = 20
     private static let maxBirthRate: Float = 80_000
 
-    private let emitterLayer = CAEmitterLayer()
+    private final class EmitterSlot {
+        let layer: CAEmitterLayer
+        var stopWorkItem: DispatchWorkItem?
+        var isEmitting = false
+
+        init(layer: CAEmitterLayer) {
+            self.layer = layer
+        }
+    }
+
+    private var slots: [EmitterSlot] = []
+    private var activeSlotIndex = 0
     private var latestToken: UInt64 = 0
-    private var stopEmissionWorkItem: DispatchWorkItem?
-    private var isEmitting = false
 
     override var isFlipped: Bool { true }
 
@@ -66,7 +76,7 @@ final class HeartEmitterView: NSView {
         wantsLayer = true
         layer = CALayer()
         layer?.backgroundColor = NSColor.clear.cgColor
-        setupEmitterLayer()
+        setupSlots()
     }
 
     @available(*, unavailable)
@@ -78,9 +88,11 @@ final class HeartEmitterView: NSView {
         super.layout()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        emitterLayer.frame = bounds
-        emitterLayer.emitterSize = CGSize(width: bounds.width, height: 2)
-        emitterLayer.emitterPosition = CGPoint(x: bounds.midX, y: bounds.maxY * 2 + Self.spawnOffset)
+        for slot in slots {
+            slot.layer.frame = bounds
+            slot.layer.emitterSize = CGSize(width: bounds.width, height: 2)
+            slot.layer.emitterPosition = CGPoint(x: bounds.midX, y: bounds.maxY * 2 + Self.spawnOffset)
+        }
         CATransaction.commit()
     }
 
@@ -90,41 +102,51 @@ final class HeartEmitterView: NSView {
 
         guard count > 0 else { return }
 
-        if !isEmitting {
-            // First burst in this session: prewarm so hearts appear immediately
+        var slot = slots[activeSlotIndex]
+
+        if !slot.isEmitting {
+            // Advance to the next slot so we get a fresh timeline without disrupting old particles
+            activeSlotIndex = (activeSlotIndex + 1) % Self.slotCount
+            slot = slots[activeSlotIndex]
+
+            // Prewarm the new slot so hearts appear immediately
             let totalEmissionTime = Self.prewarmTime + Self.burstDuration
             let emissionRate = min(Float(count) / Float(totalEmissionTime), Self.maxBirthRate)
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            emitterLayer.beginTime = CACurrentMediaTime() - Self.prewarmTime
-            emitterLayer.setValue(emissionRate, forKeyPath: "emitterCells.heart.birthRate")
+            slot.layer.beginTime = CACurrentMediaTime() - Self.prewarmTime
+            slot.layer.setValue(emissionRate, forKeyPath: "emitterCells.heart.birthRate")
             CATransaction.commit()
-            isEmitting = true
+            slot.isEmitting = true
         }
-        // If already emitting, just extend the stop timer (no beginTime rewind)
+        // If already emitting on the active slot, just extend the stop timer
 
-        stopEmissionWorkItem?.cancel()
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self else { return }
+        slot.stopWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak slot] in
+            guard let slot else { return }
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            self.emitterLayer.setValue(0.0, forKeyPath: "emitterCells.heart.birthRate")
+            slot.layer.setValue(0.0, forKeyPath: "emitterCells.heart.birthRate")
             CATransaction.commit()
-            self.isEmitting = false
+            slot.isEmitting = false
         }
-        stopEmissionWorkItem = workItem
+        slot.stopWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.burstDuration, execute: workItem)
     }
 
-    private func setupEmitterLayer() {
-        emitterLayer.emitterShape = .line
-        emitterLayer.emitterMode = .surface
-        emitterLayer.renderMode = .unordered
-        emitterLayer.seed = UInt32.random(in: UInt32.min...UInt32.max)
-        emitterLayer.birthRate = 1
-        emitterLayer.beginTime = CACurrentMediaTime()
-        emitterLayer.emitterCells = [makeHeartCell()]
-        layer?.addSublayer(emitterLayer)
+    private func setupSlots() {
+        for _ in 0..<Self.slotCount {
+            let emitterLayer = CAEmitterLayer()
+            emitterLayer.emitterShape = .line
+            emitterLayer.emitterMode = .surface
+            emitterLayer.renderMode = .unordered
+            emitterLayer.seed = UInt32.random(in: UInt32.min...UInt32.max)
+            emitterLayer.birthRate = 1
+            emitterLayer.beginTime = CACurrentMediaTime()
+            emitterLayer.emitterCells = [makeHeartCell()]
+            layer?.addSublayer(emitterLayer)
+            slots.append(EmitterSlot(layer: emitterLayer))
+        }
     }
 
     private func makeHeartCell() -> CAEmitterCell {
