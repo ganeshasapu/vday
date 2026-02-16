@@ -40,12 +40,19 @@ class RoomManager: ObservableObject {
             senderID = id
         }
         doNotDisturb = UserDefaults.standard.bool(forKey: "doNotDisturb")
+
+        // Restore room connection from previous session
+        if let savedCode = UserDefaults.standard.string(forKey: "roomCode") {
+            roomCode = savedCode
+            state = .connected
+        }
     }
 
     func createRoom() {
         state = .creating
         let code = generateRoomCode()
         roomCode = code
+        UserDefaults.standard.set(code, forKey: "roomCode")
         state = .connected
         log("Created room: \(code)")
         onStateChange?()
@@ -59,6 +66,7 @@ class RoomManager: ObservableObject {
         }
         state = .joining
         roomCode = trimmed
+        UserDefaults.standard.set(trimmed, forKey: "roomCode")
         state = .connected
         log("Joined room: \(trimmed)")
         onStateChange?()
@@ -67,6 +75,7 @@ class RoomManager: ObservableObject {
     func disconnect() {
         let code = roomCode ?? "unknown"
         roomCode = nil
+        UserDefaults.standard.removeObject(forKey: "roomCode")
         partnerDoNotDisturb = false
         state = .disconnected
         log("Disconnected from room: \(code)")

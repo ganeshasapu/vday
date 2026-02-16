@@ -39,6 +39,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.handleRoomStateChange()
         }
 
+        // Reconnect if room was restored from a previous session
+        if roomManager.state == .connected {
+            handleRoomStateChange()
+        }
+
         NotificationCenter.default.addObserver(
             forName: .simulateHeartReceived,
             object: nil,
