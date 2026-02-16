@@ -48,6 +48,9 @@ cp "$PROJECT_DIR/Info.plist" "$CONTENTS_DIR/Info.plist"
 if [ -n "$VERSION" ]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$CONTENTS_DIR/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$CONTENTS_DIR/Info.plist"
+    # Also update source Info.plist so dev builds show the correct version
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PROJECT_DIR/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$PROJECT_DIR/Info.plist"
     echo "Version set to: $VERSION"
 fi
 
