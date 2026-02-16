@@ -20,9 +20,9 @@
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/ganeshasapu/vday/releases/download/v1.2.0/Mwah.zip"
-                length="1280817"
+                length="1282280"
                 type="application/octet-stream"
-                sparkle:edSignature="u85VBlauTULibJ67WFn42Zp0aGHohc9j+uLmga4PB22bYOWFu8YS27x14pZ5SmjEuP4cg13BCmQ/IRY7DL58AQ=="
+                sparkle:edSignature="BGTMJIVGH61gjbwR6C9fT1kcgE2S9jHS8/ScjjkHiXxelL0CbHx7FjHn+fCLzejRyuOSJbkIfnv0csvYWNTgCw=="
             />
         </item>
 

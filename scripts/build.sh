@@ -70,6 +70,10 @@ fi
 
 echo "Mwah.app created at: $APP_DIR"
 
+# Ad-hoc codesign the app bundle so Sparkle can validate sealed resources
+codesign --force --deep -s - "$APP_DIR"
+echo "App bundle ad-hoc signed."
+
 # Create zip archive for distribution
 ARCHIVE_PATH="$BUILD_DIR/Mwah.zip"
 rm -f "$ARCHIVE_PATH"
