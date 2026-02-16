@@ -9,8 +9,18 @@ struct MainView: View {
 
     @State private var showSettings = false
 
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+    }
+
     var body: some View {
         VStack(spacing: 8) {
+            if !appVersion.isEmpty {
+                Text("v\(appVersion)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+            }
+
             Group {
                 if showSettings {
                     SettingsView(
