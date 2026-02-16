@@ -14,6 +14,7 @@ final class HeartChannel: NSObject, @unchecked Sendable {
 
     var onHeartReceived: (() -> Void)?
     var onPartnerStatusReceived: ((Bool) -> Void)?
+    var onPresenceReceived: (() -> Void)?
     var onLog: ((String) -> Void)?
 
     init(roomCode: String, senderID: String) {
@@ -76,6 +77,29 @@ final class HeartChannel: NSObject, @unchecked Sendable {
         URLSession.shared.dataTask(with: request) { [weak self] _, _, error in
             if let error = error {
                 self?.onLog?("Status send error: \(error.localizedDescription)")
+            }
+        }.resume()
+    }
+
+    func sendPresence() {
+        let urlString = "https://ntfy.sh/\(topicName)"
+        guard let url = URL(string: urlString) else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: String] = [
+            "sender": senderID,
+            "type": "presence"
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+        request.httpBody = data
+
+        URLSession.shared.dataTask(with: request) { [weak self] _, _, error in
+            if let error = error {
+                self?.onLog?("Presence send error: \(error.localizedDescription)")
             }
         }.resume()
     }
@@ -172,6 +196,9 @@ final class HeartChannel: NSObject, @unchecked Sendable {
                 onLog?("Partner DND: \(dnd ? "on" : "off")")
                 onPartnerStatusReceived?(dnd)
             }
+        case "presence":
+            onLog?("Partner presence ping received")
+            onPresenceReceived?()
         case "heart":
             if let id = body["id"] as? String {
                 if recentMessageIDs.contains(id) {
