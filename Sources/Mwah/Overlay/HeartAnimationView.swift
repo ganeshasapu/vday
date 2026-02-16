@@ -10,9 +10,16 @@ struct HeartBurst {
 final class HeartAnimationModel: ObservableObject {
     private static let defaultBurstCount = 150
     private static let maxBurstCount = 10_000
+    private static let intensityWindow: TimeInterval = 3.0
+    private static let maxBurstsForFullGlow: Double = 5.0
+    private static let decayTickInterval: TimeInterval = 0.1
+    private static let decayRate: Double = 0.3
 
     @Published private(set) var burst = HeartBurst(token: 0, count: 0)
+    @Published private(set) var glowIntensity: Double = 0
     private let configuredBurstCount: Int
+    private var recentBurstTimestamps: [CFTimeInterval] = []
+    private var decayTimer: DispatchSourceTimer?
 
     init() {
         configuredBurstCount = Self.readBurstCountFromEnvironment()
@@ -22,6 +29,45 @@ final class HeartAnimationModel: ObservableObject {
         let requested = count ?? configuredBurstCount
         let clampedCount = min(max(requested, 1), Self.maxBurstCount)
         burst = HeartBurst(token: burst.token &+ 1, count: clampedCount)
+
+        recentBurstTimestamps.append(CACurrentMediaTime())
+        recalculateIntensity()
+        ensureDecayTimerRunning()
+    }
+
+    private func recalculateIntensity() {
+        let cutoff = CACurrentMediaTime() - Self.intensityWindow
+        recentBurstTimestamps.removeAll { $0 < cutoff }
+        let target = min(Double(recentBurstTimestamps.count) / Self.maxBurstsForFullGlow, 1.0)
+        setGlowIntensity(max(glowIntensity, target))
+    }
+
+    private func ensureDecayTimerRunning() {
+        guard decayTimer == nil else { return }
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + Self.decayTickInterval, repeating: Self.decayTickInterval)
+        timer.setEventHandler { [weak self] in self?.decayTick() }
+        timer.resume()
+        decayTimer = timer
+    }
+
+    private func decayTick() {
+        let cutoff = CACurrentMediaTime() - Self.intensityWindow
+        recentBurstTimestamps.removeAll { $0 < cutoff }
+        let burstTarget = min(Double(recentBurstTimestamps.count) / Self.maxBurstsForFullGlow, 1.0)
+        let decayed = glowIntensity - Self.decayRate * Self.decayTickInterval
+        setGlowIntensity(max(burstTarget, decayed))
+
+        if glowIntensity <= 0 && recentBurstTimestamps.isEmpty {
+            decayTimer?.cancel()
+            decayTimer = nil
+        }
+    }
+
+    private func setGlowIntensity(_ value: Double) {
+        let clamped = min(max(value, 0), 1)
+        guard abs(clamped - glowIntensity) > 0.005 || (clamped == 0 && glowIntensity != 0) else { return }
+        glowIntensity = clamped
     }
 
     private static func readBurstCountFromEnvironment() -> Int {
@@ -44,6 +90,7 @@ struct HeartAnimationView: NSViewRepresentable {
 
     func updateNSView(_ nsView: HeartEmitterView, context: Context) {
         nsView.emitBurst(token: model.burst.token, count: model.burst.count)
+        nsView.updateGlow(intensity: model.glowIntensity)
     }
 }
 
@@ -68,6 +115,8 @@ final class HeartEmitterView: NSView {
     private var slots: [EmitterSlot] = []
     private var activeSlotIndex = 0
     private var latestToken: UInt64 = 0
+    private var glowLayer: CAGradientLayer?
+    private var currentGlowOpacity: Float = 0
 
     override var isFlipped: Bool { true }
 
@@ -76,6 +125,7 @@ final class HeartEmitterView: NSView {
         wantsLayer = true
         layer = CALayer()
         layer?.backgroundColor = NSColor.clear.cgColor
+        setupGlowLayer()
         setupSlots()
     }
 
@@ -88,6 +138,7 @@ final class HeartEmitterView: NSView {
         super.layout()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        glowLayer?.frame = bounds
         for slot in slots {
             slot.layer.frame = bounds
             slot.layer.emitterSize = CGSize(width: bounds.width, height: 2)
@@ -132,6 +183,46 @@ final class HeartEmitterView: NSView {
         }
         slot.stopWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.burstDuration, execute: workItem)
+    }
+
+    private func setupGlowLayer() {
+        let glow = CAGradientLayer()
+        glow.type = .radial
+        glow.frame = bounds
+
+        let pink = NSColor(red: 1.0, green: 0.41, blue: 0.71, alpha: 0.12).cgColor
+        let midPink = NSColor(red: 1.0, green: 0.41, blue: 0.71, alpha: 0.04).cgColor
+        let clear = NSColor.clear.cgColor
+
+        glow.colors = [clear, midPink, pink]
+        glow.locations = [0.0, 0.55, 1.0]
+        glow.startPoint = CGPoint(x: 0.5, y: 0.5)
+        glow.endPoint = CGPoint(x: 1.0, y: 1.0)
+        glow.opacity = 0
+
+        layer?.insertSublayer(glow, at: 0)
+        glowLayer = glow
+    }
+
+    func updateGlow(intensity: Double) {
+        let targetOpacity = Float(intensity)
+        guard abs(targetOpacity - currentGlowOpacity) > 0.001 else { return }
+        currentGlowOpacity = targetOpacity
+
+        let animation = CABasicAnimation(keyPath: "opacity")
+        animation.fromValue = glowLayer?.presentation()?.opacity ?? glowLayer?.opacity
+        animation.toValue = targetOpacity
+        animation.duration = targetOpacity > (glowLayer?.opacity ?? 0) ? 0.3 : 0.8
+        animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        animation.fillMode = .forwards
+        animation.isRemovedOnCompletion = false
+
+        glowLayer?.add(animation, forKey: "glowOpacity")
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        glowLayer?.opacity = targetOpacity
+        CATransaction.commit()
     }
 
     private func setupSlots() {
