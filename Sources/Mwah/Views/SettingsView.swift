@@ -19,7 +19,7 @@ struct SettingsView: View {
             GroupedSection {
                 ShortcutRecorderRow(
                     icon: "heart.fill",
-                    iconColor: .purple,
+                    iconColor: .pink,
                     label: "Send Heart",
                     currentCombo: shortcutManager.sendHeartCombo,
                     onChange: { shortcutManager.updateSendHeartCombo($0) }
