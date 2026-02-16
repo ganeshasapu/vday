@@ -10,7 +10,7 @@ struct PairingView: View {
             VStack(spacing: 4) {
                 Image(systemName: "heart.fill")
                     .font(.system(size: 28))
-                    .foregroundStyle(.pink)
+                    .foregroundStyle(.purple)
                     .padding(.top, 4)
 
                 Text("Mwah")
@@ -22,7 +22,7 @@ struct PairingView: View {
             GroupedSection {
                 MenuRow(
                     icon: "plus.circle.fill",
-                    iconColor: .pink,
+                    iconColor: .purple,
                     label: "Create a New Room",
                     action: { roomManager.createRoom() }
                 )

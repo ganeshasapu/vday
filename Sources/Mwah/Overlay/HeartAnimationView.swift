@@ -190,11 +190,11 @@ final class HeartEmitterView: NSView {
         glow.type = .radial
         glow.frame = bounds
 
-        let pink = NSColor(red: 1.0, green: 0.41, blue: 0.71, alpha: 0.12).cgColor
-        let midPink = NSColor(red: 1.0, green: 0.41, blue: 0.71, alpha: 0.04).cgColor
+        let purple = NSColor(red: 0.69, green: 0.32, blue: 0.87, alpha: 0.12).cgColor
+        let midPurple = NSColor(red: 0.69, green: 0.32, blue: 0.87, alpha: 0.04).cgColor
         let clear = NSColor.clear.cgColor
 
-        glow.colors = [clear, midPink, pink]
+        glow.colors = [clear, midPurple, purple]
         glow.locations = [0.0, 0.55, 1.0]
         glow.startPoint = CGPoint(x: 0.5, y: 0.5)
         glow.endPoint = CGPoint(x: 1.0, y: 1.0)
@@ -259,7 +259,7 @@ final class HeartEmitterView: NSView {
         cell.spinRange = 1.8
         cell.alphaRange = 0.2
         cell.alphaSpeed = -0.06
-        cell.color = NSColor.systemPink.cgColor
+        cell.color = NSColor.systemPurple.cgColor
         cell.redRange = 0.12
         cell.greenRange = 0.08
         cell.blueRange = 0.08
