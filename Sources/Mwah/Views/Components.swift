@@ -136,7 +136,7 @@ struct ShortcutRecorderRow: View {
                 if isRecording {
                     Text("Type shortcut…")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(.pink)
                 } else {
                     Text(comboDisplayString)
                         .font(.system(size: 12, weight: .medium, design: .rounded))
@@ -153,7 +153,7 @@ struct ShortcutRecorderRow: View {
         .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isRecording ? Color.purple.opacity(0.06) : (isHovered ? Color.primary.opacity(0.06) : Color.clear))
+                .fill(isRecording ? Color.pink.opacity(0.06) : (isHovered ? Color.primary.opacity(0.06) : Color.clear))
         )
         .onHover { hovering in isHovered = hovering }
     }
