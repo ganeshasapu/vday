@@ -9,6 +9,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var heartChannel: HeartChannel?
     private let statusStore = StatusStore()
     private var overlayWindow: OverlayWindow?
+    private var birthdayOverlay: BirthdayOverlayWindow?
     private var globalShortcut: GlobalShortcut?
     private var heartQueue: HeartQueue?
     private var lastHeartSendTime: CFTimeInterval = 0
@@ -26,7 +27,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let shortcut = GlobalShortcut(
             onSendHeart: { [weak self] in self?.sendHeart() },
-            onToggleDebug: { [weak self] in self?.toggleDebug() }
+            onToggleDebug: { [weak self] in self?.toggleDebug() },
+            onSendBirthday: { [weak self] in self?.sendBirthday() }
         )
         globalShortcut = shortcut
 
@@ -62,6 +64,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+
+        NotificationCenter.default.addObserver(
+            forName: .simulateBirthdayReceived,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.showBirthdayCelebration()
+            }
+        }
     }
 
     private func sendHeart() {
@@ -75,6 +87,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         heartChannel.sendHeart()
         roomManager.log("Heart sent")
+    }
+
+    private func sendBirthday() {
+        guard roomManager.state == .connected else { return }
+        guard let heartChannel else {
+            roomManager.log("Birthday skipped: no channel")
+            return
+        }
+        heartChannel.sendBirthday()
+        roomManager.log("Birthday sent!")
+    }
+
+    private func showBirthdayCelebration() {
+        guard birthdayOverlay?.isShowing != true else { return }
+        let overlay = BirthdayOverlayWindow()
+        birthdayOverlay = overlay
+        overlay.show()
     }
 
     private func handleRoomStateChange() {
@@ -107,6 +136,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.resetPartnerTimeout()
                 if !self.roomManager.doNotDisturb {
                     self.heartQueue?.enqueue()
+                }
+            }
+        }
+        heartChannel?.onBirthdayReceived = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.roomManager.log("Birthday received!")
+                self.roomManager.partnerOnline = true
+                self.resetPartnerTimeout()
+                if !self.roomManager.doNotDisturb {
+                    self.showBirthdayCelebration()
                 }
             }
         }

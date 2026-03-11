@@ -53,6 +53,13 @@ struct DebugView: View {
                 }
                 .font(.caption)
                 .controlSize(.small)
+
+                Button("🎂 Birthday") {
+                    roomManager.log("Simulated birthday")
+                    NotificationCenter.default.post(name: .simulateBirthdayReceived, object: nil)
+                }
+                .font(.caption)
+                .controlSize(.small)
             }
 
             Divider()
@@ -98,4 +105,5 @@ struct DebugView: View {
 
 extension Notification.Name {
     static let simulateHeartReceived = Notification.Name("simulateHeartReceived")
+    static let simulateBirthdayReceived = Notification.Name("simulateBirthdayReceived")
 }

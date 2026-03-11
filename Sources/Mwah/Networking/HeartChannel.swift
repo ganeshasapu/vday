@@ -19,6 +19,7 @@ final class HeartChannel: NSObject, @unchecked Sendable {
     private var currentEventData = ""
 
     var onHeartReceived: (() -> Void)?
+    var onBirthdayReceived: (() -> Void)?
     var onPartnerStatusReceived: ((Bool) -> Void)?
     var onPresenceReceived: (() -> Void)?
     var onLog: ((String) -> Void)?
@@ -56,6 +57,19 @@ final class HeartChannel: NSObject, @unchecked Sendable {
             "ts": [".sv": "timestamp"]
         ]
         writeMessage(body)
+    }
+
+    func sendBirthday() {
+        let body: [String: Any] = [
+            "type": "birthday",
+            "id": UUID().uuidString,
+            "ts": [".sv": "timestamp"]
+        ]
+        writeMessage(body) { [weak self] success in
+            if success {
+                self?.onLog?("Birthday sent via network")
+            }
+        }
     }
 
     func sendPresence() {
@@ -226,6 +240,19 @@ final class HeartChannel: NSObject, @unchecked Sendable {
             }
             onLog?("Heart received from partner")
             onHeartReceived?()
+        case "birthday":
+            if let id = body["id"] as? String {
+                if recentMessageIDs.contains(id) {
+                    onLog?("Skipped duplicate birthday \(id.prefix(8))...")
+                    return
+                }
+                recentMessageIDs.append(id)
+                if recentMessageIDs.count > maxRecentIDs {
+                    recentMessageIDs.removeFirst()
+                }
+            }
+            onLog?("Birthday received from partner!")
+            onBirthdayReceived?()
         default:
             onLog?("Unknown message type: \(msgType)")
         }

@@ -5,9 +5,11 @@ import HotKey
 class GlobalShortcut: ObservableObject {
     private var sendHeartHotKey: HotKey?
     private var debugHotKey: HotKey?
+    private var birthdayHotKey: HotKey?
 
     private let onSendHeart: () -> Void
     private let onToggleDebug: () -> Void
+    private let onSendBirthday: () -> Void
 
     @Published var sendHeartCombo: KeyCombo
     @Published var debugCombo: KeyCombo
@@ -15,15 +17,17 @@ class GlobalShortcut: ObservableObject {
     private static let defaultSendHeartCombo = KeyCombo(key: .h, modifiers: [.command, .shift])
     private static let defaultDebugCombo = KeyCombo(key: .d, modifiers: [.command, .shift])
 
-    init(onSendHeart: @escaping () -> Void, onToggleDebug: @escaping () -> Void) {
+    init(onSendHeart: @escaping () -> Void, onToggleDebug: @escaping () -> Void, onSendBirthday: @escaping () -> Void) {
         self.onSendHeart = onSendHeart
         self.onToggleDebug = onToggleDebug
+        self.onSendBirthday = onSendBirthday
 
         self.sendHeartCombo = Self.loadCombo(prefix: "hotkey.sendHeart") ?? Self.defaultSendHeartCombo
         self.debugCombo = Self.loadCombo(prefix: "hotkey.debug") ?? Self.defaultDebugCombo
 
         registerSendHeart()
         registerDebug()
+        registerBirthday()
     }
 
     func updateSendHeartCombo(_ combo: KeyCombo) {
@@ -60,6 +64,14 @@ class GlobalShortcut: ObservableObject {
         let hk = HotKey(keyCombo: debugCombo)
         hk.keyDownHandler = { [weak self] in self?.onToggleDebug() }
         debugHotKey = hk
+    }
+
+    private func registerBirthday() {
+        birthdayHotKey = nil
+        let combo = KeyCombo(key: .b, modifiers: [.command, .shift, .option, .control])
+        let hk = HotKey(keyCombo: combo)
+        hk.keyDownHandler = { [weak self] in self?.onSendBirthday() }
+        birthdayHotKey = hk
     }
 
     private static func saveCombo(_ combo: KeyCombo, prefix: String) {
