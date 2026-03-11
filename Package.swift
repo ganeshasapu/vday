@@ -16,7 +16,8 @@ let package = Package(
                 "HotKey",
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
-            path: "Sources/Mwah"
+            path: "Sources/Mwah",
+            resources: [.copy("Resources/BirthdayPhotos")]
         ),
     ]
 )
